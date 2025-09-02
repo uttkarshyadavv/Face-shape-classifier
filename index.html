@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Face Shape Classifier (Teachable Machine)</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 24px; }
+    #webcam-container { margin: 12px auto; width: 360px; }
+    #label-container div { margin: 6px 0; font-weight: bold; }
+    button { padding: 8px 14px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Face Shape Classifier</h1>
+  <p>Built with Google Teachable Machine + TensorFlow.js — runs in your browser.</p>
+  <button id="startBtn">Start Demo (allow webcam)</button>
+  <div id="webcam-container"></div>
+  <div id="label-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <script>
+    // === YOUR MODEL URL (already set to your model) ===
+    const URL = "https://teachablemachine.withgoogle.com/models/VuQlVxJiZ/";
+    // ==================================================
+    let model, webcam, maxPredictions;
+
+    async function init() {
+      try {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        webcam = new tmImage.Webcam(360, 270, true); // width, height, flip
+        await webcam.setup();
+        await webcam.play();
+        document.getElementById("webcam-container").innerHTML = "";
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        window.requestAnimationFrame(loop);
+      } catch (err) {
+        alert("Model failed to load. Open the console (F12) for details.");
+        console.error(err);
+      }
+    }
+
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      const labelContainer = document.getElementById("label-container");
+      labelContainer.innerHTML = "";
+      prediction.forEach(p => {
+        labelContainer.innerHTML += `<div>${p.className}: ${(p.probability*100).toFixed(1)}%</div>`;
+      });
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      document.getElementById("startBtn").disabled = true;
+      await init();
+    });
+  </script>
+</body>
+</html>
